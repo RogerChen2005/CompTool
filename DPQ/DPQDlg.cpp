@@ -76,6 +76,7 @@ BEGIN_MESSAGE_MAP(CDPQDlg, CDialogEx)
 	ON_WM_DROPFILES()
 	ON_BN_CLICKED(IDC_BUTTON2, &CDPQDlg::OnClear)
 	ON_BN_CLICKED(IDC_BUTTON3, &CDPQDlg::Onhelp)
+	ON_BN_CLICKED(IDC_BUTTON4, &CDPQDlg::OnLogOut)
 END_MESSAGE_MAP()
 
 
@@ -165,6 +166,7 @@ HCURSOR CDPQDlg::OnQueryDragIcon()
 }
 
 int c = 1;
+CString Log;
 
 void CDPQDlg::OnRun()
 {
@@ -181,12 +183,24 @@ void CDPQDlg::OnRun()
 		for (int i = 0; i < filedif.dif.size(); i++) {	
 			s.Format(_T("    Different on line %d :\r\n"), filedif.dif[i]);
 			temp += s;
-			s.Format(_T("           First appear on column %d , File1: %c while File2: %c \r\n"), filedif.pos[i], filedif.fir[i], filedif.sec[i]);
+			switch (filedif.etp[i])
+			{
+			case REPLACE :
+				s.Format(_T("           First appear on column %d , File1: %c while File2: %c \r\n"), filedif.pos[i], filedif.fir[i], filedif.sec[i]);
+				break;
+			case FILEONELONG :
+				s.Format(_T("           Too long on file1\r\n"));
+				break;
+			case FILETWOLONG:
+				s.Format(_T("           Too long on file2\r\n"));
+				break;
+			}
 			temp += s;
 		}
 	}
 	UpdateData(TRUE);
 	result += temp;
+	Log += temp;
 	c++;
 	UpdateData(FALSE);
 }
@@ -228,13 +242,30 @@ diff CDPQDlg::comp(CString f1, CString f2)
 		}
 		else {
 			temp.dif.push_back(cnt);
-			for (int i = 0; true; i++) {
-				if (str1[i] != str2[i]) {
-					temp.pos.push_back(i + 1);
-					temp.fir.push_back(str1[i]);
-					temp.sec.push_back(str2[i]);
-					break;
+			int strlen1 = str1.GetLength();
+			int strlen2 = str2.GetLength();
+			if (strlen1 == strlen2) {
+				temp.etp.push_back(REPLACE);
+				for (int i = 0; true; i++) {
+					if (str1[i] != str2[i]) {
+						temp.pos.push_back(i + 1);
+						temp.fir.push_back(str1[i]);
+						temp.sec.push_back(str2[i]);
+						break;
+					}
 				}
+			}
+			else if (strlen1 < strlen2) {
+				temp.etp.push_back(FILETWOLONG);
+				temp.pos.push_back(0);
+				temp.fir.push_back(' ');
+				temp.sec.push_back(' ');
+			}
+			else{
+				temp.etp.push_back(FILEONELONG);
+				temp.pos.push_back(0);
+				temp.fir.push_back(' ');
+				temp.sec.push_back(' ');
 			}
 		}
 		cnt++;
@@ -243,6 +274,8 @@ diff CDPQDlg::comp(CString f1, CString f2)
 		temp.dif.push_back(cnt);
 		cnt++;
 	}
+	File1.Close();
+	File2.Close();
 	return temp;
 }
 
@@ -250,6 +283,7 @@ diff CDPQDlg::comp(CString f1, CString f2)
 void CDPQDlg::OnClear()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	Log = "";
 	UpdateData(TRUE);
 	result = "";
 	c = 1;
@@ -262,4 +296,19 @@ void CDPQDlg::Onhelp()
 	// TODO: 在此添加控件通知处理程序代码
 	CAboutDlg mDlg;
 	mDlg.DoModal();
+}
+
+
+void CDPQDlg::OnLogOut()
+{
+	LPCTSTR szFilter = _T("log files(*.log)|*.log| | ");
+	CFileDialog dlg(FALSE, _T("log files(*.log)|*.log"),_T("result"),OFN_FILEMUSTEXIST|OFN_HIDEREADONLY,szFilter,this);
+	CString fileName = dlg.GetPathName();
+	if (dlg.DoModal() == IDOK){
+		fileName = dlg.GetPathName();
+	}
+	CFile fileout;
+	fileout.Open(fileName, CFile::modeCreate | CFile::modeWrite | CFile::modeNoTruncate, NULL);
+	fileout.Write(Log,Log.GetLength() * sizeof(TCHAR));
+	fileout.Close();
 }

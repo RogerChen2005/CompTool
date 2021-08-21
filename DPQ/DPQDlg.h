@@ -2,9 +2,12 @@
 // DPQDlg.h: 头文件
 //
 #include "vector"
+#define REPLACE 0
+#define FILEONELONG 1
+#define FILETWOLONG 2
 
 struct diff {
-	std::vector<int> dif , pos;
+	std::vector<int> dif , pos , etp;
 	std::vector<char> fir , sec;
 };
 
@@ -48,5 +51,6 @@ public:
 	diff comp(CString f1, CString f2);
 	afx_msg void OnClear();
 	afx_msg void Onhelp();
+	afx_msg void OnLogOut();
 };
 
