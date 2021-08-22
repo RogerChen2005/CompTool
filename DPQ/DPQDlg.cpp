@@ -66,6 +66,9 @@ void CDPQDlg::DoDataExchange(CDataExchange* pDX)
 	//  DDX_Text(pDX, IDC_EDIT3, result);
 	DDX_Text(pDX, IDC_EDIT2, result);
 	DDX_Text(pDX, IDC_EDIT3, file2);
+	//  DDX_Radio(pDX, IDC_RADIO1, m_mtd);
+	DDX_Control(pDX, IDC_RADIO1, m_line);
+	DDX_Control(pDX, IDC_RADIO2, m_hash);
 }
 
 BEGIN_MESSAGE_MAP(CDPQDlg, CDialogEx)
@@ -77,6 +80,7 @@ BEGIN_MESSAGE_MAP(CDPQDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON2, &CDPQDlg::OnClear)
 	ON_BN_CLICKED(IDC_BUTTON3, &CDPQDlg::Onhelp)
 	ON_BN_CLICKED(IDC_BUTTON4, &CDPQDlg::OnLogOut)
+//	ON_BN_CLICKED(IDC_RADIO1, &CDPQDlg::OnLine)
 END_MESSAGE_MAP()
 
 
@@ -112,7 +116,7 @@ BOOL CDPQDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-
+	m_line.SetCheck(TRUE);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -173,28 +177,45 @@ void CDPQDlg::OnRun()
 	// TODO: 在此添加控件通知处理程序代码
 	int res = 0;
 	CString temp;
-	diff filedif = comp(file1, file2);
-	temp.Format(_T("%s%d%s\r\n"),_T("result "),c,_T(" :"));
-	if (filedif.dif.size() == 0) {
-		temp += "    Completely same!\r\n";
-	}
-	else{
-		CString s;
-		for (int i = 0; i < filedif.dif.size(); i++) {	
-			s.Format(_T("    Different on line %d :\r\n"), filedif.dif[i]);
-			temp += s;
-			switch (filedif.etp[i])
-			{
-			case REPLACE :
-				s.Format(_T("           First appear on column %d , File1: %c while File2: %c \r\n"), filedif.pos[i], filedif.fir[i], filedif.sec[i]);
-				break;
-			case FILEONELONG :
-				s.Format(_T("           Too long on file1\r\n"));
-				break;
-			case FILETWOLONG:
-				s.Format(_T("           Too long on file2\r\n"));
-				break;
+	temp.Format(_T("%s%d%s\r\n"), _T("result "), c, _T(" :"));
+	if (m_line.GetCheck() == 1) {
+		diff filedif = comp(file1, file2);
+		if (filedif.dif.size() == 0) {
+			temp += "    Completely same!\r\n";
+		}
+		else {
+			CString s;
+			for (int i = 0; i < filedif.dif.size(); i++) {
+				s.Format(_T("    Different on line %d :\r\n"), filedif.dif[i]);
+				temp += s;
+				switch (filedif.etp[i])
+				{
+				case REPLACE:
+					s.Format(_T("           First appear on column %d , File1: %c while File2: %c \r\n"), filedif.pos[i], filedif.fir[i], filedif.sec[i]);
+					break;
+				case FILEONELONG:
+					s.Format(_T("           Too long on file1\r\n"));
+					break;
+				case FILETWOLONG:
+					s.Format(_T("           Too long on file2\r\n"));
+					break;
+				}
+				temp += s;
 			}
+		}
+	}
+	if (m_hash.GetCheck() == 1) {
+		int hash1 = hash(file1);
+		int hash2 = hash(file2);
+		if (hash1 == hash2) {
+			temp += "    Completely same!\r\n";
+		}
+		else {
+			temp += "    Different File!Details↓\r\n";
+			CString s;
+			s.Format(_T("           File1's hash: %d \r\n"), hash1);
+			temp += s;
+			s.Format(_T("           File2's hash: %d \r\n"), hash2);
 			temp += s;
 		}
 	}
@@ -279,6 +300,24 @@ diff CDPQDlg::comp(CString f1, CString f2)
 	return temp;
 }
 
+const int mod = 1000000007;
+const int P = 23;
+
+int CDPQDlg::hash(CString str)
+{
+	CStdioFile infile;
+	infile.Open(str, CFile::modeRead);
+	int hashm = 1;
+	CString tstr;
+	while (infile.ReadString(tstr)) {
+		int len = tstr.GetLength();
+		for (int i = 0; i < len; i++) {
+			hashm = (hashm * P + tstr[i]) % mod;
+		}
+	}
+	return hashm;
+}
+
 
 void CDPQDlg::OnClear()
 {
@@ -301,14 +340,14 @@ void CDPQDlg::Onhelp()
 
 void CDPQDlg::OnLogOut()
 {
-	LPCTSTR szFilter = _T("log files(*.log)|*.log| | ");
-	CFileDialog dlg(FALSE, _T("log files(*.log)|*.log"),_T("result"),OFN_FILEMUSTEXIST|OFN_HIDEREADONLY,szFilter,this);
+	LPCTSTR szFilter = _T("Log Files(*.log)|*.log||");
+	CFileDialog dlg(FALSE, _T("log files(*.log)|*.log"),_T("result"), OFN_OVERWRITEPROMPT |OFN_HIDEREADONLY,szFilter,this);
 	CString fileName = dlg.GetPathName();
 	if (dlg.DoModal() == IDOK){
 		fileName = dlg.GetPathName();
+		CFile fileout;
+		fileout.Open(fileName, CFile::modeCreate | CFile::modeWrite | CFile::modeNoTruncate, NULL);
+		fileout.Write(Log, Log.GetLength() * sizeof(TCHAR));
+		fileout.Close();
 	}
-	CFile fileout;
-	fileout.Open(fileName, CFile::modeCreate | CFile::modeWrite | CFile::modeNoTruncate, NULL);
-	fileout.Write(Log,Log.GetLength() * sizeof(TCHAR));
-	fileout.Close();
 }

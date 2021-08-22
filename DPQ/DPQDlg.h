@@ -49,8 +49,13 @@ public:
 	CString file2;
 	afx_msg void OnDropFiles(HDROP hDropInfo);
 	diff comp(CString f1, CString f2);
+	int hash(CString str);
 	afx_msg void OnClear();
 	afx_msg void Onhelp();
 	afx_msg void OnLogOut();
+//	afx_msg void OnLine();
+//	int m_mtd;
+	CButton m_line;
+	CButton m_hash;
 };
 
