@@ -177,46 +177,75 @@ void CDPQDlg::OnRun()
 	// TODO: 在此添加控件通知处理程序代码
 	int res = 0;
 	CString temp;
+	CFile Check;
 	temp.Format(_T("%s%d%s\r\n"), _T("result "), c, _T(" :"));
-	if (m_line.GetCheck() == 1) {
-		diff filedif = comp(file1, file2);
-		if (filedif.dif.size() == 0) {
-			temp += "    Completely same!\r\n";
-		}
-		else {
-			CString s;
-			for (int i = 0; i < filedif.dif.size(); i++) {
-				s.Format(_T("    Different on line %d :\r\n"), filedif.dif[i]);
-				temp += s;
-				switch (filedif.etp[i])
-				{
-				case REPLACE:
-					s.Format(_T("           First appear on column %d , File1: %c while File2: %c \r\n"), filedif.pos[i], filedif.fir[i], filedif.sec[i]);
-					break;
-				case FILEONELONG:
-					s.Format(_T("           Too long on file1\r\n"));
-					break;
-				case FILETWOLONG:
-					s.Format(_T("           Too long on file2\r\n"));
-					break;
+	int exist1 = Check.Open(file1,CFile::modeRead);
+	Check.Close();
+	int exist2 = Check.Open(file2,CFile::modeRead);
+	Check.Close();
+	bool isSame = false;
+	if (file1 == file2) {
+		isSame = true;
+	}
+	if (exist1 != 0 && exist2 != 0 && isSame == false) {
+		if (m_line.GetCheck() == 1) {
+			diff filedif = comp(file1, file2);
+			if (filedif.dif.size() == 0) {
+				temp += "    Completely same!\r\n";
+			}
+			else {
+				CString s;
+				for (int i = 0; i < filedif.dif.size(); i++) {
+					s.Format(_T("    Different on line %d :\r\n"), filedif.dif[i]);
+					temp += s;
+					switch (filedif.etp[i])
+					{
+					case REPLACE:
+						s.Format(_T("           First appear on column %d , File1: %c while File2: %c \r\n"), filedif.pos[i], filedif.fir[i], filedif.sec[i]);
+						break;
+					case FILEONELONG:
+						s.Format(_T("           Too long on file1\r\n"));
+						break;
+					case FILETWOLONG:
+						s.Format(_T("           Too long on file2\r\n"));
+						break;
+					}
+					temp += s;
 				}
+			}
+		}
+		if (m_hash.GetCheck() == 1) {
+			int hash1 = hash(file1);
+			int hash2 = hash(file2);
+			if (hash1 == hash2) {
+				temp += "    Completely same!\r\n";
+			}
+			else {
+				temp += "    Different File!Details↓\r\n";
+				CString s;
+				s.Format(_T("           File1's hash: %d \r\n"), hash1);
+				temp += s;
+				s.Format(_T("           File2's hash: %d \r\n"), hash2);
 				temp += s;
 			}
 		}
 	}
-	if (m_hash.GetCheck() == 1) {
-		int hash1 = hash(file1);
-		int hash2 = hash(file2);
-		if (hash1 == hash2) {
-			temp += "    Completely same!\r\n";
-		}
-		else {
-			temp += "    Different File!Details↓\r\n";
-			CString s;
-			s.Format(_T("           File1's hash: %d \r\n"), hash1);
-			temp += s;
-			s.Format(_T("           File2's hash: %d \r\n"), hash2);
-			temp += s;
+	else {
+		CString st;
+		if (exist1 == 0 || exist2 == 0) {
+			MessageBox(_T("Files don\'t exist"));
+			if (exist1 == 0) {
+				st.Format(_T("    Please check File 1\r\n"));
+				temp += st;
+			}
+			else {
+				st.Format(_T("    Please check File 2\r\n"));
+				temp += st;
+			}
+ 		}
+		if (isSame == true) {
+			st.Format(_T("        Completely same!\r\n"));
+			temp += st;
 		}
 	}
 	UpdateData(TRUE);
